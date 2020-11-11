@@ -1,4 +1,5 @@
-#include "../taskflow/taskflow.hpp"
+#include "../../taskflow/cudaflow.hpp"
+#include <vector>
 #include <chrono>
 
 //---------------------------------------------------------------------------------------------------------------
@@ -10,16 +11,16 @@ class ExtremeGraph {
 
   public:
 
-    template <typename C>
-    ExtremeGraph(size_t num_kernels, C&& callable = [] __device__ (T& val){ ++val; })
+    ExtremeGraph(size_t num_kernels);
 
-    double run(int dev_id);
+    template <typename F, typename C>
+    double run_parallel(size_t n, C&& callable, int dev_id);
+
+    template <typename F, typename C>
+    double run_serial(size_t n, C&& callable, int dev_id);
 
   private:
     
-    std::function<void(T)> _kernel;
-
-    size_t _size;
 
     size_t _num_kernels;
     
@@ -30,12 +31,9 @@ class ExtremeGraph {
 //---------------------------------------------------------------------------------------------------------------
 
 template <typename T>
-template <typename C>
-ExtremeGraph::ExtremeGraph(
-  size_t num_kernels,
-  C&& callable
-): _num_kernels(num_kernels),
-   _kernel(std::forward<C>(callable))
+ExtremeGraph<T>::ExtremeGraph(
+  size_t num_kernels
+): _num_kernels(num_kernels)
 {
 }
 
@@ -45,16 +43,17 @@ ExtremeGraph::ExtremeGraph(
 //   \|.../
 //     O 
 template <typename T>
-double ExtremeGraph::run_parallel(size_t n, int dev_id) {
-
-  auto tic = std::chrono::steady_clock::now();
+template <typename F, typename C>
+double ExtremeGraph<T>::run_parallel(size_t n, C&& callable, int dev_id) {
 
   tf::Taskflow taskflow;
   tf::Executor executor;
 
   std::vector<T> h_vec(n, 1);
 
-  auto dev_vec = tf::cuda_malloc_device<T>(n);
+  T* dev_vec;
+  cudaMalloc(&dev_vec, sizeof(T) * n);
+
 
   int chunk = n / _num_kernels;
   int last_chunk; 
@@ -63,27 +62,27 @@ double ExtremeGraph::run_parallel(size_t n, int dev_id) {
     ? last_chunk = chunk 
     : last_chunk = n % _num_kernels;
 
-  taskflow.emplace_on(([&](tf::cudaFlowCapturer& cap) {
+  auto cudaflow = taskflow.emplace_on([&](F& cf) {
 
-    auto h2d_t = cap.copy(dev_vec h_vec, n);
+    auto h2d_t = cf.copy(dev_vec, h_vec.data(), n);
 
     std::vector<tf::cudaTask> kernels(_num_kernels);
     for(size_t i = 0; i < _num_kernels - 1; ++i) {
-      kernels[i] = cap.for_each(
+      kernels[i] = cf.for_each(
         dev_vec + i * chunk,
         dev_vec + (i + 1) * chunk,
-        _kernel  
+        callable
       );
     }
 
-    kernels.back() = cap.for_each(
+    kernels.back() = cf.for_each(
       dev_vec + (_num_kernels - 1) * chunk,
       dev_vec + (_num_kernels - 1) * chunk + last_chunk,
-      _kernel
+      callable
     );
     
 
-    auto d2h_t = cap.copy(h_vec, dev_vec, n);
+    auto d2h_t = cf.copy(h_vec.data(), dev_vec, n);
 
     for(auto&& kernel: kernels) {
       h2d_t.precede(kernel);
@@ -92,26 +91,27 @@ double ExtremeGraph::run_parallel(size_t n, int dev_id) {
 
   }, dev_id);
 
+  auto tic = std::chrono::steady_clock::now();
 
   executor.run(taskflow).wait();
 
   auto toc = std::chrono::steady_clock::now();
 
-  return toc - tic;
+  return std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count();
 }
 
 //O---O---O.....---O---O---O
 template <typename T>
-double ExtremeGraph::run_serial(size_t n, int dev_id) {
-
-  auto tic = std::chrono::steady_clock::now();
+template <typename F, typename C>
+double ExtremeGraph<T>::run_serial(size_t n, C&& callable, int dev_id) {
 
   tf::Taskflow taskflow;
   tf::Executor executor;
 
   std::vector<T> h_vec(n, 1);
 
-  auto dev_vec = tf::cuda_malloc_device<T>(n);
+  T* dev_vec = nullptr;
+  cudaMalloc(&dev_vec, sizeof(T) * n);
 
   int chunk = n / _num_kernels;
   int last_chunk; 
@@ -120,27 +120,27 @@ double ExtremeGraph::run_serial(size_t n, int dev_id) {
     ? last_chunk = chunk 
     : last_chunk = n % _num_kernels;
 
-  taskflow.emplace([&](tf::cudaFlowCapturer& cap) {
+  taskflow.emplace_on([&](F& cf) {
 
-    auto h2d_t = cap.copy(dev_vec h_vec, n);
+    auto h2d_t = cf.copy(dev_vec, h_vec.data(), n);
 
     std::vector<tf::cudaTask> kernels(_num_kernels);
     for(size_t i = 0; i < _num_kernels - 1; ++i) {
-      kernels[i] = cap.for_each(
+      kernels[i] = cf.for_each(
         dev_vec + i * chunk,
         dev_vec + (i + 1) * chunk,
-        _kernel  
+        callable
       );
     }
 
-    kernels.back() = cap.for_each(
+    kernels.back() = cf.for_each(
       dev_vec + (_num_kernels - 1) * chunk,
       dev_vec + (_num_kernels - 1) * chunk + last_chunk,
-      _kernel
+      callable
     );
     
 
-    auto d2h_t = cap.copy(h_vec, dev_vec, n);
+    auto d2h_t = cf.copy(h_vec.data(), dev_vec, n);
 
     h2d_t.precede(kernels[0]);
     for(size_t i = 0; i < kernels.size() - 1; ++i) {
@@ -148,12 +148,14 @@ double ExtremeGraph::run_serial(size_t n, int dev_id) {
     }
     kernels.back().precede(d2h_t);
 
-  });
+  }, dev_id);
 
+
+  auto tic = std::chrono::steady_clock::now();
 
   executor.run(taskflow).wait();
 
   auto toc = std::chrono::steady_clock::now();
 
-  return toc - tic;
+  return std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count();
 }
