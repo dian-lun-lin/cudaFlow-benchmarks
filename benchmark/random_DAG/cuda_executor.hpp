@@ -32,22 +32,16 @@ double cudaExecutor::run() {
   tf::Taskflow taskflow;
   tf::Executor executor;
 
-  bool* nodes;
-
-  auto alloc_t = taskflow.emplace([&]() {
-    cudaMallocManaged(&nodes, sizeof(bool) * _dag._num_nodes);
-    std::memset(nodes, 0, _dag._num_nodes);
-  }).name("allocate");
-
-  auto trav_t = taskflow.emplace_on([&](CF& cf) {
+  auto trav_t = taskflow.emplace_on([this](CF& cf) {
     std::vector<std::vector<tf::cudaTask>> tasks;
     tasks.resize(_dag._graph.size());
 
     for(size_t l = 0; l < _dag._graph.size(); ++l) {
       tasks[l].resize(_dag._graph[l].size());
       for(size_t i = 0; i < _dag._graph[l].size(); ++i) {
-        tasks[l][i] = cf.single_task([nodes, l, i] __device__ () {
-          *(nodes + l + i) = true;
+        bool* v = _dag._graph[l][i]._visited;
+        tasks[l][i] = cf.single_task([v] __device__ () {
+          *v = true;
         });
       }
     }
@@ -62,12 +56,10 @@ double cudaExecutor::run() {
 
   }, _dev_id).name("traverse");
 
-  auto check_t = taskflow.emplace([&](){
-    size_t count_visited = std::count(nodes, nodes + _dag._num_nodes, 1);
-    assert(count_visited != _dag._num_nodes);
+  auto check_t = taskflow.emplace([this](){
+    assert(_dag.traversed());
   });
   
-  alloc_t.precede(trav_t);
   trav_t.precede(check_t);
 
   executor.run(taskflow).wait();

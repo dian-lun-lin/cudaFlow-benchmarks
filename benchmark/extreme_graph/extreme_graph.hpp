@@ -46,6 +46,8 @@ template <typename T>
 template <typename F, typename C>
 double ExtremeGraph<T>::run_parallel(size_t n, C&& callable, int dev_id) {
 
+  auto tic = std::chrono::steady_clock::now();
+
   tf::Taskflow taskflow;
   tf::Executor executor;
 
@@ -80,7 +82,6 @@ double ExtremeGraph<T>::run_parallel(size_t n, C&& callable, int dev_id) {
       dev_vec + (_num_kernels - 1) * chunk + last_chunk,
       callable
     );
-    
 
     auto d2h_t = cf.copy(h_vec.data(), dev_vec, n);
 
@@ -91,7 +92,6 @@ double ExtremeGraph<T>::run_parallel(size_t n, C&& callable, int dev_id) {
 
   }, dev_id);
 
-  auto tic = std::chrono::steady_clock::now();
 
   executor.run(taskflow).wait();
 
@@ -104,6 +104,8 @@ double ExtremeGraph<T>::run_parallel(size_t n, C&& callable, int dev_id) {
 template <typename T>
 template <typename F, typename C>
 double ExtremeGraph<T>::run_serial(size_t n, C&& callable, int dev_id) {
+
+  auto tic = std::chrono::steady_clock::now();
 
   tf::Taskflow taskflow;
   tf::Executor executor;
@@ -151,7 +153,6 @@ double ExtremeGraph<T>::run_serial(size_t n, C&& callable, int dev_id) {
   }, dev_id);
 
 
-  auto tic = std::chrono::steady_clock::now();
 
   executor.run(taskflow).wait();
 
