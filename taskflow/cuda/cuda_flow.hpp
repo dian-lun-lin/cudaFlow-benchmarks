@@ -1047,7 +1047,7 @@ void cudaFlow::offload_until(P&& predicate) {
       ),
       "failed to create an executable graph"
     );
-    //cuda_dump_graph(std::cout, cf._graph._native_handle);
+    //cuda_dump_graph(std::cout, _graph._native_handle);
   }
 
   cudaScopedPerThreadStream s;
