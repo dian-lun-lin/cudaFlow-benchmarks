@@ -12,7 +12,7 @@ class GraphExecutor {
   
     GraphExecutor(Graph& graph, int dev_id = 0);
 
-    double run();
+    std::pair<double, double> run();
 
   private:
     
@@ -28,7 +28,10 @@ GraphExecutor<CF>::GraphExecutor(Graph& graph, int dev_id): _g{graph}, _dev_id{d
 }
 
 template <typename CF>
-double GraphExecutor<CF>::run() {
+std::pair<double, double> GraphExecutor<CF>::run() {
+
+  auto constr_tic = std::chrono::steady_clock::now();
+
   tf::Taskflow taskflow;
   tf::Executor executor;
 
@@ -62,13 +65,20 @@ double GraphExecutor<CF>::run() {
   
   trav_t.precede(check_t);
 
-  auto tic = std::chrono::steady_clock::now();
+  auto constr_toc = std::chrono::steady_clock::now();
+
+  auto exec_tic = std::chrono::steady_clock::now();
 
   executor.run(taskflow).wait();
 
-  auto toc = std::chrono::steady_clock::now();
+  auto exec_toc = std::chrono::steady_clock::now();
 
-  return std::chrono::duration_cast<std::chrono::milliseconds>(toc - tic).count();
+  auto constr_dur = std::chrono::duration_cast<std::chrono::milliseconds>(constr_toc - constr_tic).count();
+
+  auto exec_dur = std::chrono::duration_cast<std::chrono::milliseconds>(exec_toc - exec_tic).count();
+
+
+  return {constr_dur, exec_dur};
 
 }
 

@@ -109,9 +109,11 @@ void Graph::allocate_nodes() {
   cudaMallocManaged(&_visited_start, sizeof(bool) * _num_nodes);
   std::memset(_visited_start, 0, sizeof(bool) * _num_nodes);
 
+  bool* v = _visited_start;
+
   for(size_t l = 0; l < _level; ++l) {
     for(size_t i = 0; i < _graph[l].size(); ++i) {
-      _graph[l][i].visited = _visited_start++;
+      _graph[l][i].visited =  v++;
     }
   }
 }
