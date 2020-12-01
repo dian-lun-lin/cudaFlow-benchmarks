@@ -12,7 +12,7 @@ int main(int argc, char* argv[]) {
   app.add_option(
     "-m, --mode", 
     mode, 
-    "select mode(SerialGraph, ParallelGraph, Tree, RandomDAG), default is SerialGraph" 
+    "select mode(SerialGraph, ParallelGraph, Tree, RandomDAG, Diamond(map-reduce)), default is SerialGraph" 
   );
 
   std::vector<int> args;
@@ -41,6 +41,10 @@ int main(int argc, char* argv[]) {
     assert(args.size() == 3);
     g_ptr = new RandomDAG(args[0], args[1], args[2]);
   }
+  else if(mode == "Diamond") {
+    assert(args.size() == 2);
+    g_ptr = new Diamond(args[0], args[1]);
+  }
   else {
     throw std::runtime_error("No such graph\n");
   }
@@ -55,4 +59,6 @@ int main(int argc, char* argv[]) {
             << "Execution time: "
             << time_pair.second
             << " ms\n";
+
+  g_ptr->print_graph(std::cout);
 }
