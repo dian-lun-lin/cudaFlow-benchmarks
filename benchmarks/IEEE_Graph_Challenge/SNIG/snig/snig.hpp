@@ -226,8 +226,8 @@ void SNIG<T>::_infer() {
       return is_end;
     }).name("first_fetch"));
 
-    cudaflows.emplace_back(taskflow.emplace_on([&, dev](tf::cudaFlowCapturer& cf){
-      cf.make_optimizer<tf::cudaRoundRobinCapturing>(4);
+    cudaflows.emplace_back(taskflow.emplace_on([&, dev](CF& cf){
+      //cf.make_optimizer<tf::cudaRoundRobinCapturing>(4);
       std::vector<tf::cudaTask> weight_copies;
       std::vector<tf::cudaTask> infers;
       weight_copies.reserve(Base<T>::_num_layers);

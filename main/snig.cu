@@ -30,25 +30,25 @@ int main(int argc, char* argv[]) {
 
   CLI::App app{"SNIG"};
 
-  std::fs::path weight_path("../IEEE_Graph_Challenge/sample_data/weight/neuron1024/");
+  std::fs::path weight_path("../benchmarks/IEEE_Graph_Challenge/sample_data/weight/neuron1024/");
   app.add_option(
     "-w, --weight",
     weight_path,
     "weight directory path"
   )->check(CLI::ExistingDirectory);
 
-  std::fs::path input_path("../IEEE_Graph_Challenge/sample_data/MNIST/sparse-images-1024.b");
+  std::fs::path input_path("../benchmarks/IEEE_Graph_Challenge/sample_data/MNIST/sparse-images-1024.b");
   app.add_option(
       "-i, --input",
       input_path, 
-      "input binary file path, default is ../IEEE_Graph_Challenge/sample_data/MNIST/sparse-images-1024.b"
+      "input binary file path, default is ../benchmarks/IEEE_Graph_Challenge/sample_data/MNIST/sparse-images-1024.b"
   )->check(CLI::ExistingFile);
 
-  std::fs::path golden_path("../IEEE_Graph_Challenge/sample_data/MNIST/neuron1024-l120-categories.b");
+  std::fs::path golden_path("../benchmarks/IEEE_Graph_Challenge/sample_data/MNIST/neuron1024-l120-categories.b");
   app.add_option(
       "-g, --golden",
       golden_path, 
-      "golden binary file path, default is ../IEEE_Graph_Challenge/sample_data/MINIST/neuron1024-l120-categories.b"
+      "golden binary file path, default is ../benchmarks/IEEE_Graph_Challenge/sample_data/MINIST/neuron1024-l120-categories.b"
   );
   
 
@@ -109,8 +109,8 @@ int main(int argc, char* argv[]) {
 
   CLI11_PARSE(app, argc, argv);
 
-  //Eigen::Matrix<int, Eigen::Dynamic, 1> cudaflow_result;
-  Eigen::Matrix<int, Eigen::Dynamic, 1> cudacapturer_result;
+  Eigen::Matrix<int, Eigen::Dynamic, 1> cudaflow_result;
+  //Eigen::Matrix<int, Eigen::Dynamic, 1> cudacapturer_result;
 
   dim3 thread_dimension{thread_vector[0], thread_vector[1], thread_vector[2]};
 
@@ -122,24 +122,24 @@ int main(int argc, char* argv[]) {
     num_layers
   );
 
-  //cudaflow_result = snig.infer<tf::cudaFlow>(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
-  cudacapturer_result = snig.infer<tf::cudaFlowCapturer>(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
+  cudaflow_result = snig.infer<tf::cudaFlow>(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
+  //cudacapturer_result = snig.infer<tf::cudaFlowCapturer>(input_path, 60000, input_batch_size, num_weight_buffers, num_gpus);
 
   auto golden = snig::read_golden_binary(golden_path);
 
-  //if(snig::is_passed(cudaflow_result, golden)) {
-    //std::cout << "CHALLENGE PASSED (cudaflow)\n";
-  //}
-  //else{
-    //std::cout << "CHALLENGE FAILED (cudaflow)\n";
-  //}
-
-  if(snig::is_passed(cudacapturer_result, golden)) {
-    std::cout << "CHALLENGE PASSED (cuda_capturer)\n";
+  if(snig::is_passed(cudaflow_result, golden)) {
+    std::cout << "CHALLENGE PASSED (cudaflow)\n";
   }
   else{
-    std::cout << "CHALLENGE FAILED (cuda_capturer)\n";
+    std::cout << "CHALLENGE FAILED (cudaflow)\n";
   }
+
+  //if(snig::is_passed(cudacapturer_result, golden)) {
+    //std::cout << "CHALLENGE PASSED (cuda_capturer)\n";
+  //}
+  //else{
+    //std::cout << "CHALLENGE FAILED (cuda_capturer)\n";
+  //}
 
   return 0;
 }

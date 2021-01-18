@@ -129,6 +129,7 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
                _num_neurons
              );
 
+
   // total length of row and col index
   // value index should consider sizeof(T)
   _p_w_index_len  = _num_neurons * _num_secs + _max_nnz + 1;
@@ -147,7 +148,7 @@ void Base<T>::_load_weight(const std::fs::path& weight_path) {
 
   //pad packed weight size
   _pp_wsize = sizeof(int) * (_pp_w_index_len) + sizeof(T) * _max_nnz;
-  
+
   checkCuda(cudaMallocHost(
     (void**)&_host_pinned_weight,
     _pp_wsize * _num_layers
