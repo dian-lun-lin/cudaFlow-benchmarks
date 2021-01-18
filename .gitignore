@@ -1,1 +1,3 @@
 *.out
+benchmarks/IEEE_Graph_Challenge/dataset/
+*.b

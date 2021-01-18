@@ -1,0 +1,1 @@
+/usr/bin/g++ CMakeFiles/simple_graph.dir/main/simple_graph.cu.o -o ../bin/simple_graph  -lstdc++fs -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-11.1/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-11.1/targets/x86_64-linux/lib"

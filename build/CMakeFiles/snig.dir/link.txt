@@ -1,0 +1,1 @@
+/usr/bin/g++ CMakeFiles/snig.dir/main/snig.cu.o -o ../bin/snig  -lstdc++fs -lcudadevrt -lcudart_static -lrt -lpthread -ldl  -L"/usr/local/cuda-11.1/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda-11.1/targets/x86_64-linux/lib"
