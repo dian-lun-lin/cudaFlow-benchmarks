@@ -45,8 +45,8 @@ std::pair<double, double> GraphExecutor<CF>::run() {
   std::vector<int> h_input(N);
 
 
-  auto trav_t = taskflow.emplace_on([this, N, d_res, d_input, &h_res, &h_input](tf::cudaFlow& cf) {
-    //cf.make_optimizer<tf::cudaRoundRobinCapturing>(2);
+  auto trav_t = taskflow.emplace_on([this, N, d_res, d_input, &h_res, &h_input](CF& cf) {
+    //cf.make_optimizer<tf::cudaRoundRobinCapturing>(8);
     
     std::vector<std::vector<std::vector<tf::cudaTask>>> tasks;
     tasks.resize(_g.get_graph().size());
