@@ -36,25 +36,61 @@ std::pair<double, double> GraphExecutor<CF>::run() {
   tf::Taskflow taskflow;
   tf::Executor executor;
 
-  auto trav_t = taskflow.emplace_on([this](tf::cudaFlowCapturer& cf) {
-    cf.make_optimizer<tf::cudaRoundRobinCapturing>(2);
-    std::vector<std::vector<tf::cudaTask>> tasks;
+  size_t N{1000000};
+
+  int* d_res = tf::cuda_malloc_device<int>(1);
+  int* d_input = tf::cuda_malloc_device<int>(N);
+
+  int h_res;
+  std::vector<int> h_input(N);
+
+
+  auto trav_t = taskflow.emplace_on([this, N, d_res, d_input, &h_res, &h_input](tf::cudaFlow& cf) {
+    //cf.make_optimizer<tf::cudaRoundRobinCapturing>(2);
+    
+    std::vector<std::vector<std::vector<tf::cudaTask>>> tasks;
     tasks.resize(_g.get_graph().size());
 
     for(size_t l = 0; l < _g.get_graph().size(); ++l) {
       tasks[l].resize((_g.get_graph())[l].size());
+
       for(size_t i = 0; i < (_g.get_graph())[l].size(); ++i) {
+
+        //each node contains 4 tasks
+        std::vector<tf::cudaTask> tasks_per_node(4);
+
+        //H2D
+        tasks_per_node[0] = cf.copy(d_input, h_input.data(), N).name("H2D");
+
+        //reduce
+        tasks_per_node[1] =  cf.reduce(d_input, d_input + N, d_res, [this] __device__ (int a, int b) { 
+          return a + b; 
+        }).name("reduce");
+
+        //D2H
+        tasks_per_node[2] = cf.copy(&h_res, d_res, 1).name("D2H");
+
+        //visited
         bool* v = _g.at(l, i).visited;
-        tasks[l][i] = cf.single_task([v] __device__ () {
+        tasks_per_node[3] = cf.single_task([this, v] __device__ (){
           *v = true;
-        });
+        }).name("visited"); 
+
+        //connection
+        tasks_per_node[0].precede(tasks_per_node[1]);
+        tasks_per_node[1].precede(tasks_per_node[2]);
+        tasks_per_node[2].precede(tasks_per_node[3]);
+        
+
+        tasks[l][i] = std::move(tasks_per_node);
       }
     }
 
+    //connection
     for(size_t l = 0; l < _g.get_graph().size() - 1; ++l) {
       for(size_t i = 0; i < (_g.get_graph())[l].size(); ++i) {
         for(auto&& out_node: _g.at(l, i).out_nodes) {
-          tasks[l][i].precede(tasks[l + 1][out_node]);
+          tasks[l][i][3].precede(tasks[l + 1][out_node][0]);
         }
       }
     }

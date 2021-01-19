@@ -62,5 +62,5 @@ int main(int argc, char* argv[]) {
             << time_pair.second
             << " ms\n";
 
-  /*g_ptr->print_graph(std::cout);*/
+  //g_ptr->print_graph(std::cout);
 }
