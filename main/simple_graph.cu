@@ -52,15 +52,16 @@ int main(int argc, char* argv[]) {
   }
 
 
-  GraphExecutor<tf::cudaFlow> executor(*g_ptr, 0); 
+  GraphExecutor<tf::cudaFlowCapturer> executor(*g_ptr, 0); 
   auto time_pair = executor.run();
 
-  std::cout << "Construction time: " 
-            << time_pair.first
-            << " ms\n"
-            << "Execution time: "
-            << time_pair.second
-            << " ms\n";
+  //std::cout << "Construction time: " 
+            //<< time_pair.first
+            //<< " ms\n"
+            //<< "Execution time: "
+            //<< time_pair.second
+            //<< " ms\n";
+  std::cout << time_pair.second << "\n";
 
   //g_ptr->print_graph(std::cout);
 }
