@@ -132,12 +132,12 @@ message(STATUS "building executables ...")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 add_executable(simple_graph ${PROJECT_SOURCE_DIR}/main/simple_graph.cu)
-add_executable(snig ${PROJECT_SOURCE_DIR}/main/snig.cu)
 target_link_libraries(simple_graph ${PROJECT_NAME} stdc++fs)
-target_link_libraries(snig ${PROJECT_NAME} stdc++fs)
 
+#add_executable(snig ${PROJECT_SOURCE_DIR}/main/snig.cu)
+#target_link_libraries(snig ${PROJECT_NAME} stdc++fs)
 
 if(NOT CUDA_ARCHITECTURES)
-  set_property(TARGET snig PROPERTY CUDA_ARCHITECTURES OFF)
+  #set_property(TARGET snig PROPERTY CUDA_ARCHITECTURES OFF)
   set_property(TARGET simple_graph PROPERTY CUDA_ARCHITECTURES OFF)
 endif()
