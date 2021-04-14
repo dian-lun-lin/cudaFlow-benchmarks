@@ -85,15 +85,6 @@ auto make_moc(T&& m) {
 // Visitors.
 //-----------------------------------------------------------------------------
 
-// Overloadded.
-template <typename... Ts>
-struct Visitors : Ts... { 
-  using Ts::operator()... ;
-};
-
-template <typename... Ts>
-Visitors(Ts...) -> Visitors<Ts...>;
-
 // ----------------------------------------------------------------------------
 // Function Traits
 // reference: https://github.com/ros2/rclcpp
