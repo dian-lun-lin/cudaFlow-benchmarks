@@ -1,0 +1,3 @@
+[submodule "benchmarks/SNIG"]
+	path = benchmarks/SNIG
+	url = https://github.com/dian-lun-lin/SNIG.git
