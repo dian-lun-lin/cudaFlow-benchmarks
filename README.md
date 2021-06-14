@@ -1,4 +1,4 @@
-# OPT_cudaGraph
+# cudaFlow benchmarks
 
 # File Descriptions
   - main/
